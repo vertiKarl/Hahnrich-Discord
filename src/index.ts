@@ -1,5 +1,4 @@
-import { GatewayIntentBits, Partials, Interaction, SlashCommandBuilder, ApplicationCommandType, ApplicationCommandOptionType, ActivityType, ContextMenuCommandBuilder, Client} from "discord.js";
-import { clientId, guildIds, token } from "./config.json";
+import { GatewayIntentBits, Partials, Interaction, SlashCommandBuilder, ApplicationCommandType, ApplicationCommandOptionType, ActivityType, ContextMenuCommandBuilder, Client, PresenceData} from "discord.js";
 import Command from "./Command";
 import Commands from "./Commands"
 import { REST } from "@discordjs/rest";
@@ -8,7 +7,29 @@ import EventEmitter from "events";
 import DiscordAddon from "./DiscordAddon";
 import DiscordAddons from "./DiscordAddons";
 import TTTMuter from "./TTTMuter/TTTMuter";
-import Plugin from "hahnrich";
+import { Plugin } from "../hahnrich";
+
+const defaultSettings = {
+    token: "",
+    clientId: "",
+    guildIds: [""]
+};
+
+interface Settings {
+    token: string,
+    clientId: string,
+    guildIds: string[]
+}
+
+function validateSettings(settings: Settings | undefined) {
+    if(!settings) return false;
+    return (
+        settings.clientId.length > 5 &&
+        settings.token.length > 5 &&
+        settings.guildIds.length > 0 &&
+        settings.guildIds[0].length > 5
+    );
+}
 
 /**
  * A plugin for interaction on the realtime chat application Discord!
@@ -16,8 +37,11 @@ import Plugin from "hahnrich";
 export class DiscordPlugin extends Plugin {
     name = "Discord";
     description = "A Discord-bot for Hahnrich";
-    emoji = '🎮'
-    client?: Client
+    emoji = '🎮';
+    events = new EventEmitter();
+    client?: Client;
+    settings?: Settings;
+    HahnrichVersion = "";
 
     addons = new Map<string, DiscordAddon>();
 
@@ -75,7 +99,16 @@ export class DiscordPlugin extends Plugin {
      */
     async init(): Promise<boolean> {
         return new Promise((resolve, reject) => {
-            const rest = new REST().setToken(token);
+            if(!this.settings || !validateSettings(this.settings)) return false;
+
+            this.events.on("VERSION", (version) => {
+                this.debug("Setting HahnrichVersion to", version)
+                this.HahnrichVersion = version;
+                this.updateRPC();
+            })
+            this.events.emit("GET_VERSION"); // Get Hahnrich version to display on discord rpc
+
+            const rest = new REST().setToken(this.settings.token);
             const commands = this.loadCommands();
             const commandData: Array<SlashCommandBuilder|ContextMenuCommandBuilder> = [];
             commands.forEach(command => {
@@ -83,14 +116,14 @@ export class DiscordPlugin extends Plugin {
                 commandData.push(command.data);
             })
 
-            for(let guild of guildIds) {
+            for(let guild of this.settings.guildIds) {
                 // clean up guild commands
-                rest.put(Routes.applicationGuildCommands(clientId, guild), { body: [] })
+                rest.put(Routes.applicationGuildCommands(this.settings.clientId, guild), { body: [] })
                     .then(() => this.log('Successfully cleaned up guild commands.'))
                     .catch(console.error);
                 // push current ones
                 rest.put(
-                    Routes.applicationGuildCommands(clientId, guild),
+                    Routes.applicationGuildCommands(this.settings.clientId, guild),
                     { body: commandData }
                 )
                 .then(() => {
@@ -106,50 +139,71 @@ export class DiscordPlugin extends Plugin {
         })
     }
 
+    updateRPC() {
+        if(!this.client?.user) return;
+        const presence: PresenceData = {
+            status: "online",
+            activities: [{
+                        name: `Version ${this.HahnrichVersion}`,
+                        type: ActivityType.Streaming,
+                        url: "https://twitch.tv/vertiKarl"
+                }]
+        };
+
+        this.debug("Updating rich presence to", presence);
+
+        this.client.user.setPresence(presence);
+    }
+
     /**
      * Starts the Discord-client and starts the interactionHandler
      * @returns Success-state
      */
-    async execute(): Promise<boolean> {
-        if(!await this.init()) {
-            return false
-        };
+    async execute(): Promise<void> {
+        return new Promise(async (resolve, reject) => {
+            if(!this.settings) {
+                this.error("Please fill out the config.json!");
+                this.settings = defaultSettings;
+                this.events.emit("SAVE_SETTINGS");
+                reject();
+                this.debug("PAST SETTINGS")
+            }
 
-        const client = new Client({
-            intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates]
-        })
-
-        this.client = client;
-
-        client.on('ready', () => {
-            if(!client?.user) return;
-
-            this.log(`Logged in as ${client.user.tag}`);
-
-            client.user.setPresence({
-                status: "online",
-                activities: [{
-                            name: `Version ${DiscordPlugin.HahnrichVersion}`,
-                            type: ActivityType.Streaming,
-                            url: "https://twitch.tv/vertiKarl"
-                    }]
-            });
-
-            DiscordAddons.forEach((addon) => {
-                const instance = new(addon)();
-                this.loadAddon(instance);
+            if(!await this.init()) {
+                reject()
+            };
+    
+    
+            const client = new Client({
+                intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates]
             })
+    
+            this.client = client;
+    
+            client.on('ready', () => {
+                if(!client?.user) return;
+    
+                this.log(`Logged in as ${client.user.tag}`);
+
+                this.updateRPC();
+                           
+    
+                DiscordAddons.forEach((addon) => {
+                    const instance = new(addon)();
+                    this.loadAddon(instance);
+                })
+            })
+    
+            client.on("RequestRestart", () => {
+                this.events.emit("RESTART", this);
+            })
+    
+            client.on('interactionCreate', (interaction) => this.interactionHandler(client, interaction, this.events));
+    
+            client.login(this.settings.token);
+    
+            resolve();
         })
-
-        client.on("RequestRestart", () => {
-            Plugin.events.emit("Restart", this);
-        })
-
-        client.on('interactionCreate', (interaction) => this.interactionHandler(client, interaction, DiscordPlugin.events));
-
-        client.login(token);
-
-        return true;
     }
 
     stop() {

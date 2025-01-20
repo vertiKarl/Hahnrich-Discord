@@ -1,9 +1,8 @@
 import http, { Server } from 'http';
 import { API_KEY, GUILD_ID, PORT, CHANNEL_ID } from "./config.json";
-import Logger from 'hahnrich';
+import Logger from '../../hahnrich';
 import DiscordAddon from '../DiscordAddon';
 import { Client, Guild } from 'discord.js';
-import chalk from 'chalk';
 
 function respondJson(res: http.ServerResponse, content: Object) {
     res.end(JSON.stringify(content));
@@ -31,7 +30,7 @@ export default class TTTMuter extends DiscordAddon {
             this.httpServer = http.createServer((req, res) => {
                 this.handleRequest(req, res);
             }).listen(PORT, () => {
-                this.log(chalk.green(`Bot endpoint is running on port ${PORT}`));
+                this.log(`Bot endpoint is running on port ${PORT}`);
               });
 
             this.guild = this.client.guilds.cache.get(GUILD_ID);
@@ -104,7 +103,7 @@ export default class TTTMuter extends DiscordAddon {
                     this.error('[Connect][Error]', `0 users found with tag "${tag}".`);
                 } else {
                     respondJson(res, { tag: found.displayName, id: found.id });
-                    this.log(chalk.green('[Connect][Success]', `Connecting ${found.displayName} (${found.id})`));
+                    this.log('[Connect][Success]', `Connecting ${found.displayName} (${found.id})`);
                 }
                 break;
             case "mute":

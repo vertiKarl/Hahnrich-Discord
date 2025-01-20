@@ -8,10 +8,12 @@
   },
   "scripts": {
     "start": "node ./dist/index.js",
-    "dev": "node npm_scripts/dev_preload.js; nodemon --ignore 'token.json' --ignore 'Clips/*' --ignore 'Songs/*' ./src/index.ts",
-    "build": "node npm_scripts/build_preload.js; tsc -p ."
+    "dev": "nodemon ./src/index.ts",
+    "build": "tsc -p ."
   },
   "devDependencies": {
+    "@tsconfig/recommended": "^1.0.8",
+    "@types/node": "^22.10.7",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"

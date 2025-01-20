@@ -1,5 +1,5 @@
 import EventEmitter from "events";
-import Logger from "../../Utils/Logger";
+import { Logger } from "../hahnrich";
 import { Client } from "discord.js";
 
 export default abstract class DiscordAddon extends Logger {
