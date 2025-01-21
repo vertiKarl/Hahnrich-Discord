@@ -64,7 +64,6 @@ export default class RandomQuoteCommand extends Command {
                 if(result.content.startsWith("https://"))
                     embed.setImage(result.content);
 
-                console.log(result)
                 interaction.editReply({embeds: [embed]});
             } catch(e) {
                 this.error("Error in RandomQuoteCommand:",e)
@@ -72,7 +71,7 @@ export default class RandomQuoteCommand extends Command {
             }
 
         } else {
-            console.log("not a text channel")
+            this.error("Couldn't respond, not a text channel.")
         }
         return true
     }

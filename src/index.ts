@@ -97,7 +97,7 @@ export class DiscordPlugin extends Plugin {
      * into the discord api
      * @returns Success-state
      */
-    async init(): Promise<boolean> {
+    async init(): Promise<void> {
         return new Promise((resolve, reject) => {
             if(!this.settings || !validateSettings(this.settings)) return false;
 
@@ -106,6 +106,7 @@ export class DiscordPlugin extends Plugin {
                 this.HahnrichVersion = version;
                 this.updateRPC();
             })
+
             this.events.emit("GET_VERSION"); // Get Hahnrich version to display on discord rpc
 
             const rest = new REST().setToken(this.settings.token);
@@ -128,14 +129,13 @@ export class DiscordPlugin extends Plugin {
                 )
                 .then(() => {
                     this.log("Successfully registered application commands!")
-                    resolve(true);
+                    return resolve();
                 })
                 .catch(err => {
                     this.error("Failed registering application commands!", err)
-                    resolve(false);
+                    return reject();
                 })
             }
-
         })
     }
 
@@ -165,12 +165,15 @@ export class DiscordPlugin extends Plugin {
                 this.error("Please fill out the config.json!");
                 this.settings = defaultSettings;
                 this.events.emit("SAVE_SETTINGS");
-                reject();
+                return reject();
                 this.debug("PAST SETTINGS")
             }
 
-            if(!await this.init()) {
-                reject()
+            try {
+                await this.init()
+            } catch(err) {
+                this.error("INIT", err);
+                return reject()
             };
     
     
@@ -202,12 +205,13 @@ export class DiscordPlugin extends Plugin {
     
             client.login(this.settings.token);
     
-            resolve();
+            return resolve();
         })
     }
 
-    stop() {
-        this.client?.destroy();
+    async stop() {
+        this.log("Stopping Discord bot.");
+        await this.client?.destroy();
     }
 
     /**
