@@ -154,6 +154,7 @@ export default class TTTMuter extends DiscordAddon {
             return;
           }
         } else {
+          this.debug("id:", id, "status", status);
           this.error("Invalid request");
           res.status(400).end();
           return;
