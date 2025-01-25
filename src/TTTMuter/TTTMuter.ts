@@ -83,7 +83,7 @@ export default class TTTMuter extends DiscordAddon {
 
       if (typeof name !== "string" || typeof nick !== "string") {
         res.status(400).end();
-        this.debug("name", name, "nick", nick);
+        this.debug("name", name, "nick", nick, "query", req.query);
         this.error("Invalid request, parameters missing.");
         return;
       }
