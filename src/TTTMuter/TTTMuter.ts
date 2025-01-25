@@ -158,8 +158,10 @@ export default class TTTMuter extends DiscordAddon {
           return;
         }
       });
-      res.status(200).json({ success: true }).end();
-      this.log(`[Success]`);
+      if (!res.writableEnded) {
+        res.status(200).json({ success: true }).end();
+        this.log(`[Success]`);
+      }
       return;
     });
 
