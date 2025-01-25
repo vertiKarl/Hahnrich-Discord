@@ -132,7 +132,7 @@ export default class TTTMuter extends DiscordAddon {
         body = [body];
       }
 
-      body.forEach(async ({ id, status }) => {
+      for (const { id, status } of body) {
         if (id && typeof status === "boolean") {
           for (let i = 0; i < id.length; i++) {
             if (isNaN(Number(id[i]))) {
@@ -157,11 +157,9 @@ export default class TTTMuter extends DiscordAddon {
           res.status(400).end();
           return;
         }
-      });
-      if (!res.writableEnded) {
-        res.status(200).json({ success: true }).end();
-        this.log(`[Success]`);
       }
+      res.status(200).json({ success: true }).end();
+      this.log(`[Success]`);
       return;
     });
 
