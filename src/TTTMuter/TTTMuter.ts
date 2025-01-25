@@ -137,6 +137,7 @@ export default class TTTMuter extends DiscordAddon {
           for (let i = 0; i < id.length; i++) {
             if (isNaN(Number(id[i]))) {
               res.status(400).end();
+              this.debug("id:", id, "status", status);
               this.warn("Invalid request received");
               return;
             }
