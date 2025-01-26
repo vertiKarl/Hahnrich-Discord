@@ -52,7 +52,7 @@ export default class TTTMuter extends DiscordAddon {
     this.app.use("/", (req, res, next) => {
       this.debug(`[${req.method}] ${req.path}`);
       this.debug("[HEADERS]", req.headers);
-      this.debug("[BODY]", req.body);
+      console.debug("[BODY]", req.body);
 
       if (!this.guild) {
         res.status(500).end();
@@ -148,6 +148,59 @@ export default class TTTMuter extends DiscordAddon {
             await member.voice.setMute(
               status,
               status ? "dead players can't talk!" : undefined
+            );
+          } catch (err) {
+            res.status(500).end();
+            this.error("Couldn't resolve id", id);
+            return;
+          }
+        } else {
+          this.debug(
+            "[Failed request]\n" + "id:",
+            id,
+            `(${typeof id})`,
+            "status",
+            `(${typeof status})`
+          );
+          this.error("Invalid request");
+          res.status(400).end();
+          return;
+        }
+      }
+      res.status(200).json({ success: true }).end();
+      this.log(`[Success]`);
+      return;
+    });
+
+    this.app.post("/deafen", async (req, res, next) => {
+      let body: MuteRequest | MuteRequest[];
+      try {
+        body = req.body;
+      } catch (err) {
+        this.error("Couldn't parse request!", err);
+        res.status(500).end();
+        return;
+      }
+
+      if (!Array.isArray(body)) {
+        body = [body];
+      }
+
+      for (const { id, status } of body) {
+        if (id && typeof status === "boolean") {
+          for (let i = 0; i < id.length; i++) {
+            if (isNaN(Number(id[i]))) {
+              res.status(400).end();
+              this.debug("id:", id, "status", status);
+              this.warn("Invalid request received");
+              return;
+            }
+          }
+          try {
+            const member = await this.guild!.members.fetch(id);
+            await member.voice.setDeaf(
+              status,
+              status ? "dead players can't hear!" : undefined
             );
           } catch (err) {
             res.status(500).end();
