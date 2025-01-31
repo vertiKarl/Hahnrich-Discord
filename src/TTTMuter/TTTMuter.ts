@@ -35,7 +35,7 @@ export default class TTTMuter extends DiscordAddon {
       this.routes();
 
       this.server = this.app.listen(PORT, () => {
-        this.log(`Bot endpoint is running on port ${PORT}`);
+        this.info(`Bot endpoint is running on port ${PORT}`);
       });
 
       resolve(true);
@@ -65,7 +65,7 @@ export default class TTTMuter extends DiscordAddon {
         return;
       }
 
-      this.log(
+      this.info(
         `${req.ip} tried to request but was not authorized! (${req.headers.authorization})`
       );
 
@@ -108,7 +108,7 @@ export default class TTTMuter extends DiscordAddon {
           .status(200)
           .json({ name: found.displayName, nick: found.nickname, id: found.id })
           .end();
-        this.log(
+        this.info(
           `Success matched ${found.displayName} (${found.id}) to ${nick} (${name})`
         );
       }
@@ -168,7 +168,7 @@ export default class TTTMuter extends DiscordAddon {
         }
       }
       res.status(200).json({ success: true }).end();
-      this.log(`[Success]`);
+      this.info(`[Success]`);
       return;
     });
 
@@ -221,12 +221,12 @@ export default class TTTMuter extends DiscordAddon {
         }
       }
       res.status(200).json({ success: true }).end();
-      this.log(`[Success]`);
+      this.info(`[Success]`);
       return;
     });
 
     if (this.legacyEnabled) {
-      this.log("Loading legacy routes");
+      this.info("Loading legacy routes");
       this.app.get("/", async (req, res, next) => {
         this.warn("Hitting legacy backend");
         let params: any | undefined;
@@ -258,7 +258,7 @@ export default class TTTMuter extends DiscordAddon {
             const tag = (params.tag as String).toLowerCase();
             // TODO: check if handling correct
             this.warn("Is this tag correct?", tag);
-            this.log("[LegacyConnect][Requesting]", `Searching for "${tag}"`);
+            this.info("[LegacyConnect][Requesting]", `Searching for "${tag}"`);
 
             const found = this.guild!.members.cache.find(
               (member) =>
@@ -277,7 +277,7 @@ export default class TTTMuter extends DiscordAddon {
               return;
             } else {
               res.status(200).json({ tag: found.displayName, id: found.id });
-              this.log(
+              this.info(
                 "[LegacyConnect][Success]",
                 `Connecting ${found.displayName} (${found.id})`
               );
@@ -292,12 +292,12 @@ export default class TTTMuter extends DiscordAddon {
               discordGuild: this.guild?.id,
               discordChannel: CHANNEL_ID,
             });
-            this.log("[LegacySync][Request]", params);
+            this.info("[LegacySync][Request]", params);
             return;
           }
           case "keep_alive": {
             res.json({ success: true });
-            this.log("[LegacyKeepAlive][Request]", params);
+            this.info("[LegacyKeepAlive][Request]", params);
             break;
           }
           case "mute": {
@@ -326,7 +326,7 @@ export default class TTTMuter extends DiscordAddon {
                 mute ? "dead players can't talk!" : undefined
               );
               res.status(200).json({ success: true });
-              this.log(
+              this.info(
                 `[LegacyMute][Discord:SetMute][Success]`,
                 `${mute ? "Muted" : "Unmuted"} ${id}`
               );
